@@ -2210,6 +2210,7 @@ function Proposals() {
                       loading={tableLoading}
                       pagination={{ pageSize: 10 }}
                       scroll={{ x: 'max-content' }}
+                      sticky
                       bordered
                     />
                   </div>

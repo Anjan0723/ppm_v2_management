@@ -1168,18 +1168,20 @@ function ScientistProposals() {
                           </p>
                         </div>
                         <Space wrap>
-                          <Button
-                            type={showUnacknowledgedOnly ? 'primary' : 'default'}
-                            size="large"
-                            danger
-                            disabled={!unacknowledgedCount}
-                            onClick={handleUnacknowledgedToggle}
-                            className={showUnacknowledgedOnly ? 'shadow-md hover:shadow-lg' : ''}
-                          >
-                            ⚠️ Unacknowledged{unacknowledgedCount > 0 ? (
-                              <span className="ml-1 bg-red-600 text-white px-2 py-0.5 rounded-full text-xs">{unacknowledgedCount}</span>
-                            ) : null}
-                          </Button>
+                          {statusFilter === 'proposals' && (
+                            <Button
+                              type={showUnacknowledgedOnly ? 'primary' : 'default'}
+                              size="large"
+                              danger
+                              disabled={!unacknowledgedCount}
+                              onClick={handleUnacknowledgedToggle}
+                              className={showUnacknowledgedOnly ? 'shadow-md hover:shadow-lg' : ''}
+                            >
+                              ⚠️ Unacknowledged{unacknowledgedCount > 0 ? (
+                                <span className="ml-1 bg-red-600 text-white px-2 py-0.5 rounded-full text-xs">{unacknowledgedCount}</span>
+                              ) : null}
+                            </Button>
+                          )}
                           <Button
                             type="primary"
                             size="large"

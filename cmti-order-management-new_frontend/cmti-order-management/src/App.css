@@ -125,6 +125,25 @@
   white-space: nowrap;
 }
 
+/* Sticky header for admin table */
+.admin-proposals-table .ant-table-thead > tr > th {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #fff;
+}
+
+.admin-proposals-table .ant-table-thead > tr > th::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fafafa;
+  z-index: -1;
+}
+
 .role-proposals-table .ant-table-cell {
   white-space: nowrap;
   overflow: hidden;

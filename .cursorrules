@@ -1,0 +1,398 @@
+# Coding Rules for CMTI Order Management Project
+
+## Project Context
+- React 18+ with functional components and hooks
+- Ant Design (antd) as the primary UI component library
+- Tailwind CSS for utility styling alongside Ant Design
+- Custom CSS in App.css for global styles
+- DayJS for date manipulation
+- XLSX for Excel export functionality
+
+## File Structure & Imports
+
+### Import Order (strict)
+1. React hooks from 'react'
+2. Third-party icons from '@ant-design/icons'
+3. Ant Design components from 'antd'
+4. Third-party libraries (dayjs, xlsx, etc.)
+5. Local configuration imports (API_BASE_URL, date utilities)
+6. Local CSS files (App.css)
+
+### Example:
+```jsx
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  PlusOutlined,
+  SearchOutlined,
+  EyeOutlined,
+} from '@ant-design/icons'
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Table,
+  message,
+} from 'antd'
+import dayjs from 'dayjs'
+import '../App.css'
+import { API_BASE_URL } from '../config/api.js'
+import { DISPLAY_DATE_FORMAT, formatDate } from '../config/date.js'
+```
+
+## Naming Conventions
+
+- **Components**: PascalCase (e.g., `Proposals`, `MasterProposalsTable`)
+- **Functions**: camelCase (e.g., `fetchProposals`, `handleSubmit`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `PROPOSAL_FIELDS`, `API_BASE_URL`)
+- **State Variables**: camelCase with descriptive names (e.g., `tableData`, `loading`)
+- **Boolean States**: Prefix with is/has/should (e.g., `isModalOpen`, `hasData`)
+- **Event Handlers**: Prefix with handle (e.g., `handleSubmit`, `handleClose`)
+- **Modal Open States**: Suffix with `Open` or `Visible` (e.g., `modalOpen`, `docsModalVisible`)
+
+## React Hooks Usage
+
+### useState
+- Group related state together when logical
+- Initialize with proper default values
+- Use descriptive names
+
+```jsx
+const [tableData, setTableData] = useState([])
+const [filteredData, setFilteredData] = useState([])
+const [loading, setLoading] = useState(false)
+const [modalOpen, setModalOpen] = useState(false)
+```
+
+### useCallback
+- ALWAYS wrap all functions with useCallback
+- Include all dependencies in the dependency array
+- Use for event handlers, API calls, and memoized functions
+
+```jsx
+const fetchProposals = useCallback(async () => {
+  setLoading(true)
+  try {
+    const response = await fetch(`${API_BASE_URL}/proposals/`)
+    // ... logic
+  } catch (error) {
+    console.error(error)
+    message.error('Error message')
+  } finally {
+    setLoading(false)
+  }
+}, [/* dependencies */])
+```
+
+### useEffect
+- Use for side effects only
+- Include all dependencies
+- Clean up subscriptions/event listeners
+
+```jsx
+useEffect(() => {
+  fetchProposals()
+  fetchStats()
+  fetchStageConfig()
+}, [fetchProposals, fetchStats, fetchStageConfig])
+```
+
+### useMemo
+- Use for expensive computations
+- Use for derived data that doesn't need to change on every render
+
+```jsx
+const statistics = useMemo(() => {
+  const total = tableData.length
+  const completed = tableData.filter(item => item.status === 'completed').length
+  return { total, completed }
+}, [tableData])
+```
+
+## API & Data Fetching
+
+### Fetch Pattern
+- Always use async/await
+- Use try/catch/finally blocks
+- Set loading states appropriately
+- Handle errors with user feedback
+- Use proper headers: `{ accept: 'application/json' }`
+
+```jsx
+const fetchData = useCallback(async () => {
+  setLoading(true)
+  try {
+    const response = await fetch(`${API_BASE_URL}/endpoint/`, {
+      headers: { accept: 'application/json' },
+    })
+    if (!response.ok) throw new Error('Failed to fetch')
+    const data = await response.json()
+    setTableData(Array.isArray(data) ? data : [])
+  } catch (error) {
+    console.error('Error fetching data:', error)
+    message.error(error.message || 'Unable to fetch data')
+    setTableData([])
+  } finally {
+    setLoading(false)
+  }
+}, [])
+```
+
+### Data Mapping
+- Create mapper functions for API to UI conversion
+- Handle edge cases (null, undefined, empty arrays)
+
+```jsx
+const mapApiToUi = (record) => ({
+  id: record?.id ?? '',
+  name: record?.name ?? '',
+  key: record?.id ?? crypto.randomUUID(),
+})
+```
+
+## UI Components
+
+### Table Columns Definition
+- Define columns as arrays of objects
+- Include width for each column
+- Use fixed: 'left' or fixed: 'right' for important columns
+- Use render functions for custom cell content
+
+```jsx
+const columns = [
+  { 
+    title: 'Name', 
+    dataIndex: 'name', 
+    key: 'name', 
+    width: 200,
+    fixed: 'left',
+    render: (value) => value || '-'
+  },
+  {
+    title: 'Status',
+    dataIndex: 'status',
+    key: 'status',
+    width: 120,
+    render: (value) => value ? <Tag color="blue">{value}</Tag> : null,
+  },
+]
+```
+
+### Modal Usage
+- Use `open` prop (not `visible` - deprecated)
+- Include maskClosable={false} for important modals
+- Provide proper footer buttons or footer={null}
+- Set appropriate width
+
+```jsx
+<Modal
+  title="Modal Title"
+  open={modalOpen}
+  onCancel={closeModal}
+  footer={[
+    <Button key="cancel" onClick={closeModal}>Cancel</Button>,
+    <Button key="submit" type="primary" onClick={handleSubmit}>Submit</Button>,
+  ]}
+  width={700}
+  maskClosable={false}
+>
+  {/* Content */}
+</Modal>
+```
+
+### Form Handling
+- Use Form.useForm() hook
+- Set initial values with form.setFieldsValue()
+- Reset form on modal close
+- Add validation rules
+
+```jsx
+const [form] = Form.useForm()
+
+const openEditModal = useCallback((record) => {
+  form.resetFields()
+  form.setFieldsValue(record)
+  setModalOpen(true)
+}, [form])
+
+// In JSX
+<Form form={form} onFinish={handleSubmit}>
+  <Form.Item 
+    name="fieldName" 
+    label="Field Label"
+    rules={[{ required: true, message: 'Field is required' }]}
+  >
+    <Input />
+  </Form.Item>
+</Form>
+```
+
+## Error Handling
+
+- Always wrap async operations in try/catch
+- Log errors to console for debugging
+- Show user-friendly error messages
+- Gracefully handle empty/null data
+
+```jsx
+try {
+  // async operation
+} catch (error) {
+  console.error('Descriptive error message:', error)
+  message.error(error.message || 'User-friendly error message')
+} finally {
+  // cleanup (set loading false, etc.)
+}
+```
+
+## Date Handling
+
+- Use dayjs for all date operations
+- Use formatDate utility for display
+- Use DISPLAY_DATE_FORMAT constant
+
+```jsx
+import dayjs from 'dayjs'
+import { formatDate, DISPLAY_DATE_FORMAT } from '../config/date.js'
+
+// Display
+render: (value) => formatDate(value) || '-'
+
+// DatePicker
+<DatePicker format="DD.MM.YYYY" />
+
+// DayJS operations
+const date = dayjs(value)
+const isValid = date.isSameOrAfter(dayjs())
+```
+
+## Styling
+
+- Use Tailwind utility classes where possible
+- Use Ant Design's built-in styling props
+- Use inline styles sparingly for dynamic values
+- Consistent spacing with Tailwind (p-4, m-2, gap-4, etc.)
+
+```jsx
+// Good - Tailwind
+<div className="flex items-center gap-4 p-4">
+
+// Good - Ant Design props
+<Card size="small" className="shadow-md">
+<Button type="primary" size="small">
+
+// Acceptable - Inline for dynamic
+<span style={{ color: count > 0 ? 'green' : 'red' }}>
+```
+
+## LocalStorage Usage
+
+- Always wrap in try/catch
+- Parse JSON safely
+- Handle missing data gracefully
+
+```jsx
+try {
+  const rawUser = window.localStorage.getItem('ppm_user')
+  if (rawUser) {
+    const parsedUser = JSON.parse(rawUser)
+    setCurrentUserName(parsedUser.name)
+  }
+} catch (storageError) {
+  console.error('Failed to read from localStorage', storageError)
+}
+```
+
+## Code Organization
+
+### Component Structure
+1. Imports
+2. Constants (field definitions, options arrays)
+3. Helper functions (mappers, formatters)
+4. Main component function
+5. State declarations
+6. Callback functions (useCallback)
+7. Effects (useEffect)
+8. Derived data (useMemo)
+9. JSX return
+
+### Field Definitions
+- Define field configurations as constants at the top
+- Include name, label, width, and optional properties
+
+```jsx
+const PROPOSAL_FIELDS = [
+  { name: 'id', label: 'SL NO', width: 120, fixed: 'left' },
+  { name: 'customer_name', label: 'Customer Name', width: 170 },
+  { 
+    name: 'status', 
+    label: 'Status', 
+    width: 150, 
+    input: 'select',
+    render: (value) => value ? <Tag color="blue">{value}</Tag> : null
+  },
+]
+```
+
+## Critical Rules
+
+### MUST DO
+- ✅ ALWAYS use useCallback for every function
+- ✅ ALWAYS include all dependencies in useCallback/useEffect
+- ✅ ALWAYS handle loading states for async operations
+- ✅ ALWAYS show error messages to users via antd message
+- ✅ ALWAYS wrap localStorage access in try/catch
+- ✅ ALWAYS use proper key props in lists (rowKey for tables)
+- ✅ ALWAYS set scroll={{ x: 'max-content', y: height }} for tables
+- ✅ ALWAYS use `open` instead of `visible` for Modal
+
+### NEVER DO
+- ❌ NEVER define functions inside render without useCallback
+- ❌ NEVER mutate state directly (always use setter functions)
+- ❌ NEVER use any type implicitly - be explicit with types or JSDoc
+- ❌ NEVER leave console.log in production code (remove or use console.error for errors)
+- ❌ NEVER use var - always use const or let
+- ❌ NEVER forget to handle the finally block for loading states
+
+## Common Patterns
+
+### Document Count Feature
+When adding enquiry documents column to tables:
+
+1. Add state variables for modal and loading
+2. Fetch document counts with proposals
+3. Add column with View (count) button or "No documents" text
+4. Include document modals at end of component
+
+### Table with Horizontal Scroll
+```jsx
+<Table
+  columns={columns}
+  scroll={{ x: 'max-content', y: 600 }}
+  bordered
+  sticky
+/>
+```
+
+### Conditional Rendering
+```jsx
+{loading && <Spin />}
+{!loading && data.length === 0 && <Empty />}
+{!loading && data.length > 0 && <Table dataSource={data} />}
+```
+
+### Modal Form Pattern
+```jsx
+const openModal = useCallback((record) => {
+  setEditingRecord(record)
+  form.resetFields()
+  form.setFieldsValue(record)
+  setModalOpen(true)
+}, [form])
+
+const closeModal = useCallback(() => {
+  setModalOpen(false)
+  setEditingRecord(null)
+  form.resetFields()
+}, [form])
+```
